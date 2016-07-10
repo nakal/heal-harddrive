@@ -7,18 +7,18 @@ fi
 
 GEOM_FLAGS=`sysctl -n kern.geom.debugflags`
 if [ $GEOM_FLAGS -ne 16 ]; then
-	echo "For security measures this script won't work without"
-	echo "you setting the sysctl kern.geom.debugflags to value 16"
-	echo "Consider it an 'are you sure' question!"
-	echo "It means, you have understood what this script does to"
-	echo "your hard disk."
+	echo "For security measures this script won't work without" >&2
+	echo "you setting the sysctl kern.geom.debugflags to value 16" >&2
+	echo "Consider it an 'are you sure' question!" >&2
+	echo "It means, you have understood what this script does to" >&2
+	echo "your hard disk." >&2
 	exit 1
 fi
 
 HDD=$1
 
 if [ ! -c ${HDD} ]; then
-	echo "Error: ${HDD} must be a device."
+	echo "Error: ${HDD} must be a device." >&2
 	exit 0
 fi
 
@@ -30,21 +30,25 @@ if [ -z $START_LBA ]; then
 fi
 
 if [ $START_LBA -lt 0 ] || [ $START_LBA -ge $SIZE ]; then
-	echo "Error: ${START_LBA} is out of spec for this device."
+	echo "Error: ${START_LBA} is out of spec for this device." >&2
 	exit 1
 fi
 
 # 4k mode
 CNT=8
+ALIGN_TEST=`expr $START_LBA % ${CNT}`
+if [ $ALIGN_TEST -ne 0 ]; then
+	echo "Error: start-lba (${START_LBA}) needs to be divisible by ${CNT}." >&2
+	exit 1
+fi
 
 REPAIRED=0
-
 echo "Requested scan from $START_LBA on ${HDD} (size: $SIZE)"
 
 fix_lba() {
 	LBA=$1
 	if [ -z $LBA ] || [ $LBA -lt 0 ] || [ $LBA -ge $SIZE ]; then
-		echo "Illegal LBA!"
+		echo "Illegal LBA!" >&2
 		exit 1
 	fi
 	echo "Checking LBA $LBA for errors."
@@ -73,7 +77,7 @@ while [ $START_LBA -lt $SIZE ]; do
 			FIX_LBA=`expr $START_LBA + $STOPPED_CNT`
 			fix_lba ${FIX_LBA}
 			if [ $? -ne 0 ]; then
-				echo "Malfunction: read of single LBA was OK!"
+				echo "Malfunction: read of single LBA was OK!" >&2
 				exit 1
 			fi
 			START_LBA=$FIX_LBA
